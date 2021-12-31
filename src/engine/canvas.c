@@ -1,4 +1,5 @@
 #include "canvas.h"
+#include "heap.h"
 #include "log.h"
 
 #include <stdlib.h>
@@ -6,24 +7,27 @@
 #define TAG "CNV "
 
 // Image blit is coded for 16 bpp, make sure the build fails if hh2_RGB565 does not have 16 bits
-typedef char hh2_staticAssertColorMustHave16Bits[sizeof(hh2_RGB565) == 2 ? 1 : -1];
+typedef char rl2_staticAssertColorMustHave16Bits[sizeof(rl2_RGB565) == 2 ? 1 : -1];
 
-struct hh2_Canvas {
+struct rl2_Canvas {
     unsigned width;
     unsigned height;
     size_t pitch; // in bytes
 
-    hh2_RGB565 pixels[1];
+    rl2_RGB565 pixels[1];
 };
 
-hh2_Canvas hh2_createCanvas(unsigned const width, unsigned const height) {
-    size_t const pitch = ((width + 3) & ~3) * sizeof(hh2_RGB565);
+rl2_Canvas rl2_createCanvas(unsigned const width, unsigned const height) {
+    size_t const pitch = ((width + 3) & ~3) * sizeof(rl2_RGB565);
     size_t const size = pitch * height;
 
-    hh2_Canvas const canvas = (hh2_Canvas)malloc(sizeof(*canvas) + size - sizeof(canvas->pixels[0]));
+    RL2_DEBUG(TAG "canvas pitch is %zu", pitch);
+    RL2_DEBUG(TAG "allocating %zu bytes for the canvas", size);
+
+    rl2_Canvas const canvas = (rl2_Canvas)rl2_Alloc(sizeof(*canvas) + size - sizeof(canvas->pixels[0]));
 
     if (canvas == NULL) {
-        HH2_LOG(HH2_LOG_ERROR, TAG "out of memory");
+        RL2_ERROR(TAG "out of memory creating canvas");
         return NULL;
     }
 
@@ -31,40 +35,42 @@ hh2_Canvas hh2_createCanvas(unsigned const width, unsigned const height) {
     canvas->height = height;
     canvas->pitch = pitch;
 
+    RL2_INFO(TAG "canvas created @%p, width=%u, height=%u, pitch=%zu", canvas, width, height, pitch);
     return canvas;
 }
 
-void hh2_destroyCanvas(hh2_Canvas const canvas) {
-    free(canvas);
+void rl2_destroyCanvas(rl2_Canvas const canvas) {
+    RL2_INFO(TAG "freeing canvas @%p", canvas);
+    rl2_Free(canvas);
 }
 
-unsigned hh2_canvasWidth(hh2_Canvas const canvas) {
+unsigned rl2_canvasWidth(rl2_Canvas const canvas) {
     return canvas->width;
 }
 
-unsigned hh2_canvasHeight(hh2_Canvas const canvas) {
+unsigned rl2_canvasHeight(rl2_Canvas const canvas) {
     return canvas->height;
 }
 
-size_t hh2_canvasPitch(hh2_Canvas const canvas) {
+size_t rl2_canvasPitch(rl2_Canvas const canvas) {
     return canvas->pitch;
 }
 
-void hh2_clearCanvas(hh2_Canvas const canvas, hh2_RGB565 const color) {
+void rl2_clearCanvas(rl2_Canvas const canvas, rl2_RGB565 const color) {
     unsigned const width = canvas->width;
     unsigned const height = canvas->height;
     size_t const pitch = canvas->pitch;
-    hh2_RGB565* pixel = canvas->pixels;
+    rl2_RGB565* pixel = canvas->pixels;
 
     for (unsigned y = 0; y < height; y++) {
         for (unsigned x = 0; x < width; x++) {
             pixel[x] = color;
         }
 
-        pixel = (hh2_RGB565*)((uint8_t*)pixel + pitch);
+        pixel = (rl2_RGB565*)((uint8_t*)pixel + pitch);
     }
 }
 
-hh2_RGB565* hh2_canvasPixel(hh2_Canvas canvas, unsigned x, unsigned y) {
-    return (hh2_RGB565*)((uint8_t*)canvas->pixels + y * canvas->pitch) + x;
+rl2_RGB565* rl2_canvasPixel(rl2_Canvas const canvas, unsigned const x, unsigned const y) {
+    return (rl2_RGB565*)((uint8_t*)canvas->pixels + y * canvas->pitch) + x;
 }

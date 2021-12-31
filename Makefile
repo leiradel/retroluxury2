@@ -14,7 +14,7 @@ endif
 
 CC ?= gcc
 CFLAGS = -std=c99 -Wall -Wpedantic -Werror -fPIC
-DEFINES += -DWITH_MEM_SRCDST=0 \ # libjpeg-turbo
+DEFINES += -DWITH_MEM_SRCDST=0 # libjpeg-turbo
 
 INCLUDES += -Isrc -Isrc/engine -Isrc/generated
 INCLUDES += -Isrc/libjpeg-turbo # libjpeg-turbo
@@ -23,9 +23,9 @@ INCLUDES += -Isrc/libpng -Isrc/zlib # libpng and zlib
 LIBS = -lm
 
 ifeq ($(DEBUG), 1)
-	CFLAGS += -O0 -g $(DEFINES) $(INCLUDES)
+	CFLAGS += -O0 -g $(DEFINES) $(INCLUDES) -DRL2_BUILD_DEBUG
 else
-	CFLAGS += -O3 -DNDEBUG $(DEFINES) $(INCLUDES)
+	CFLAGS += -O3 -DNDEBUG $(DEFINES) $(INCLUDES) -DRL2_BUILD_RELEASE
 endif
 
 ENGINE_OBJS = \
