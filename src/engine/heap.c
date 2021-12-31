@@ -1,6 +1,6 @@
 #include "heap.h"
 
-static void* libc_Alloc(void* userdata, void* pointer, size_t size) {
+static void* rl2_libcAlloc(void* userdata, void* pointer, size_t size) {
     (void)userdata;
 
     if (pointer == NULL) {
@@ -15,7 +15,7 @@ static void* libc_Alloc(void* userdata, void* pointer, size_t size) {
     }
 }
 
-static rl2_Allocf s_alloc = libcAlloc;
+static rl2_Allocf s_alloc = rl2_libcAlloc;
 static void* s_userdata = NULL;
 
 void rl2_setAlloc(rl2_Alloc alloc, void* userdata) {
