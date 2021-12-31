@@ -1,29 +1,44 @@
-#ifndef HH2_LOG_H__
-#define HH2_LOG_H__
+#ifndef RL2_LOG_H__
+#define RL2_LOG_H__
 
 #include <stdarg.h>
 
 typedef enum {
-    HH2_LOG_DEBUG,
-    HH2_LOG_INFO,
-    HH2_LOG_WARN,
-    HH2_LOG_ERROR
+    RL2_LOG_DEBUG,
+    RL2_LOG_INFO,
+    RL2_LOG_WARN,
+    RL2_LOG_ERROR
 }
-hh2_LogLevel;
+rl2_LogLevel;
 
-typedef void (*hh2_Logger)(hh2_LogLevel level, char const* format, va_list ap);
+typedef void (*rl2_Logger)(rl2_LogLevel level, char const* format, va_list ap);
 
-void hh2_setLogger(hh2_Logger logger);
+void rl2_setLogger(rl2_Logger logger);
 
-#ifdef HH2_ENABLE_LOGGING
-    #define HH2_LOG(...) do { hh2_log(__VA_ARGS__); } while (0)
-    #define HH2_VLOG(level, format, ap) do { hh2_vlog(level, format, ap); } while (0)
-
-    void hh2_log(hh2_LogLevel level, char const* format, ...);
-    void hh2_vlog(hh2_LogLevel level, char const* format, va_list ap);
+#ifdef RL2_BUILD_DEBUG
+void rl2_log(rl2_LogLevel level, char const* file, unsigned line, const const* function, char const* format, ...);
 #else
-    #define HH2_LOG(...) do {} while (0)
-    #define HH2_VLOG(level, format, ap) do {} while (0)
-#endif // HH2_ENABLE_LOGGING
+void rl2_log(rl2_LogLevel level, char const* format, ...);
+#endif
 
-#endif // HH2_LOG_H__
+#ifdef RL2_ENABLE_LOG_DEBUG
+    #ifdef RL2_BUILD_DEBUG
+        #define RL2_DEBUG(...) do { rl2_log(RL2_LOG_DEBUG, __FILE__, __LINE__, __FUNCTION__, __VA_ARGS__); } while (0)
+    #else
+        #define RL2_DEBUG(...) do { rl2_log(RL2_LOG_DEBUG, __VA_ARGS__); } while (0)
+    #endif
+#else
+    #define RL2_DEBUG(...)
+#endif
+
+#ifdef RL2_BUILD_DEBUG
+    #define RL2_INFO(...) do { rl2_log(RL2_LOG_INFO, __FILE__, __LINE__, __FUNCTION__, __VA_ARGS__); } while (0)
+    #define RL2_WARN(...) do { rl2_log(RL2_LOG_WARN, __FILE__, __LINE__, __FUNCTION__, __VA_ARGS__); } while (0)
+    #define RL2_ERROR(...) do { rl2_log(RL2_LOG_ERROR, __FILE__, __LINE__, __FUNCTION__, __VA_ARGS__); } while (0)
+#else
+    #define RL2_INFO(...) do { rl2_log(RL2_LOG_INFO, __VA_ARGS__); } while (0)
+    #define RL2_WARN(...) do { rl2_log(RL2_LOG_WARN, __VA_ARGS__); } while (0)
+    #define RL2_ERROR(...) do { rl2_log(RL2_LOG_ERROR, __VA_ARGS__); } while (0)
+#endif
+
+#endif // RL2_LOG_H__
