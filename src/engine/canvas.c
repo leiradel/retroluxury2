@@ -24,7 +24,7 @@ rl2_Canvas rl2_createCanvas(unsigned const width, unsigned const height) {
     RL2_DEBUG(TAG "canvas pitch is %zu", pitch);
     RL2_DEBUG(TAG "allocating %zu bytes for the canvas", size);
 
-    rl2_Canvas const canvas = (rl2_Canvas)rl2_Alloc(sizeof(*canvas) + size - sizeof(canvas->pixels[0]));
+    rl2_Canvas const canvas = (rl2_Canvas)rl2_alloc(sizeof(*canvas) + size - sizeof(canvas->pixels[0]));
 
     if (canvas == NULL) {
         RL2_ERROR(TAG "out of memory creating canvas");
@@ -41,7 +41,7 @@ rl2_Canvas rl2_createCanvas(unsigned const width, unsigned const height) {
 
 void rl2_destroyCanvas(rl2_Canvas const canvas) {
     RL2_INFO(TAG "freeing canvas @%p", canvas);
-    rl2_Free(canvas);
+    rl2_free(canvas);
 }
 
 unsigned rl2_canvasWidth(rl2_Canvas const canvas) {
