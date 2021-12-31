@@ -29,8 +29,8 @@ else
 endif
 
 ENGINE_OBJS = \
-	src/engine/canvas.o src/engine/djb2.o src/engine/filesys.o src/engine/image.o src/engine/log.o src/engine/pixelsrc.o \
-	src/engine/sound.o src/engine/sprite.o
+	src/engine/canvas.o src/engine/djb2.o src/engine/filesys.o src/engine/heap.o src/engine/image.o src/engine/log.o \
+	src/engine/pixelsrc.o src/engine/sound.o src/engine/sprite.o
 
 LIBJPEG_TURBO_OBJS = \
 	src/3rdparty/libjpeg-turbo/jaricom.o src/3rdparty/libjpeg-turbo/jcomapi.o src/3rdparty/libjpeg-turbo/jdapimin.o \
