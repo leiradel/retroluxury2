@@ -1,5 +1,7 @@
 #include "heap.h"
 
+#include <stdlib.h>
+
 static void* rl2_libcAlloc(void* userdata, void* pointer, size_t size) {
     (void)userdata;
 
@@ -15,22 +17,22 @@ static void* rl2_libcAlloc(void* userdata, void* pointer, size_t size) {
     }
 }
 
-static rl2_Allocf s_alloc = rl2_libcAlloc;
-static void* s_userdata = NULL;
+static rl2_Allocf rl2_heapAlloc = rl2_libcAlloc;
+static void* rl2_heapUserdata = NULL;
 
-void rl2_setAlloc(rl2_Alloc alloc, void* userdata) {
-    s_alloc = alloc;
-    s_userdata = userdata;
+void rl2_setAlloc(rl2_Allocf alloc, void* userdata) {
+    rl2_heapAlloc = alloc;
+    rl2_heapUserdata = userdata;
 }
 
 void* rl2_Alloc(size_t size) {
-    return s_alloc(NULL, size);
+    return rl2_heapAlloc(rl2_heapUserdata, NULL, size);
 }
 
 void rl2_Free(void* pointer) {
-    s_alloc(pointer, 0);
+    rl2_heapAlloc(rl2_heapUserdata, pointer, 0);
 }
 
 void* rl2_Realloc(void* pointer, size_t size) {
-    return s_alloc(pointer, size);
+    return rl2_heapAlloc(rl2_heapUserdata, pointer, size);
 }
