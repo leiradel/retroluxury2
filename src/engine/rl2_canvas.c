@@ -1,6 +1,6 @@
-#include "canvas.h"
-#include "heap.h"
-#include "log.h"
+#include "rl2_canvas.h"
+#include "rl2_heap.h"
+#include "rl2_log.h"
 
 #include <stdlib.h>
 

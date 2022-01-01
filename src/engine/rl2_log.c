@@ -1,4 +1,4 @@
-#include "log.h"
+#include "rl2_log.h"
 
 static void rl2_dummyLogger(rl2_LogLevel level, char const* format, va_list ap) {
     (void)level;

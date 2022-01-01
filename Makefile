@@ -29,7 +29,7 @@ else
 endif
 
 ENGINE_OBJS = \
-	src/engine/canvas.o src/engine/djb2.o src/engine/filesys.o src/engine/heap.o src/engine/image.o src/engine/log.o \
+	src/engine/rl2_canvas.o src/engine/djb2.o src/engine/filesys.o src/engine/rl2_heap.o src/engine/image.o src/engine/rl2_log.o \
 	src/engine/pixelsrc.o src/engine/sound.o src/engine/sprite.o
 
 LIBJPEG_TURBO_OBJS = \

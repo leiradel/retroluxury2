@@ -1,4 +1,4 @@
-#include "heap.h"
+#include "rl2_heap.h"
 
 #include <stdlib.h>
 
