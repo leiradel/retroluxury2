@@ -1,4 +1,4 @@
-#include "djb2.h"
+#include "rl2_djb2.h"
 
 rl2_Djb2Hash rl2_djb2(char const* str) {
     rl2_Djb2Hash hash = 5381;

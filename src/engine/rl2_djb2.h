@@ -2,6 +2,7 @@
 #define RL2_DJB2_H__
 
 #include <inttypes.h>
+#include <stddef.h>
 
 #define RL2_PRI_DJB2HASH "0x%08" PRIx32
 
