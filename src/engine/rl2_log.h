@@ -16,7 +16,7 @@ typedef void (*rl2_Logger)(rl2_LogLevel level, char const* format, va_list ap);
 void rl2_setLogger(rl2_Logger logger);
 
 #ifdef RL2_BUILD_DEBUG
-void rl2_log(rl2_LogLevel level, char const* file, unsigned line, const const* function, char const* format, ...);
+void rl2_log(rl2_LogLevel level, char const* file, unsigned line, char const* function, char const* format, ...);
 #else
 void rl2_log(rl2_LogLevel level, char const* format, ...);
 #endif
