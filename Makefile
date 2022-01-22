@@ -2,21 +2,19 @@ ifneq ($(findstring Linux,$(shell uname -a)),)
     SOEXT=so
 else ifneq ($(findstring Darwin,$(shell uname -a)),)
     SOEXT=dylib
-    ECHOOPTS=-e
 else
     SOEXT=dll
-    ECHOOPTS=-e
 endif
 
 %.o: %.c
-	@echo $(ECHOOPTS) "Compiling: $@"
+	@echo "Compiling: $@"
 	@$(CC) $(CFLAGS) -c "$<" -o "$@"
 
 CC ?= gcc
 CFLAGS = -std=c99 -Wall -Wpedantic -Werror -fPIC
 DEFINES += -DWITH_MEM_SRCDST=0 # libjpeg-turbo
 
-INCLUDES += -Isrc -Isrc/engine -Isrc/generated
+INCLUDES += -Isrc/engine -Isrc/generated
 INCLUDES += -Isrc/libjpeg-turbo # libjpeg-turbo
 INCLUDES += -Isrc/libpng -Isrc/zlib # libpng and zlib
 
@@ -29,8 +27,8 @@ else
 endif
 
 ENGINE_OBJS = \
-	src/engine/rl2_canvas.o src/engine/rl2_djb2.o src/engine/rl2_filesys.o src/engine/rl2_heap.o src/engine/image.o \
-	src/engine/rl2_log.o src/engine/pixelsrc.o src/engine/sound.o src/engine/sprite.o
+	src/engine/rl2_canvas.o src/engine/rl2_djb2.o src/engine/rl2_filesys.o src/engine/rl2_heap.o src/engine/rl2_log.o \
+	src/engine/rl2_pixelsrc.o
 
 LIBJPEG_TURBO_OBJS = \
 	src/3rdparty/libjpeg-turbo/jaricom.o src/3rdparty/libjpeg-turbo/jcomapi.o src/3rdparty/libjpeg-turbo/jdapimin.o \
@@ -63,7 +61,7 @@ libretroluxury2.a: $(RETROLUXURY2_OBJS) $(3RDPARTY_OBJS)
 	ar rcs $@ $+
 
 src/generated/version.h: FORCE
-	@echo $(ECHOOPTS) "Creating version header: $@"
+	@echo "Creating version header: $@"
 	@cat etc/version.templ.h \
 		| sed s/\&HASH/`git rev-parse HEAD | tr -d "\n"`/g \
 		| sed s/\&VERSION/`git tag | sort -r -V | head -n1 | tr -d "\n"`/g \
@@ -71,12 +69,12 @@ src/generated/version.h: FORCE
 		> $@
 
 clean: FORCE
-	@echo $(ECHOOPTS) "Cleaning up"
+	@echo "Cleaning up"
 	@rm -f libretroluxury2.a $(RETROLUXURY2_OBJS)
 	@rm -f src/generated/version.h src/runtime/bootstrap.lua.h $(PNG_HEADERS) $(LUA_HEADERS)
 
 distclean: clean
-	@echo $(ECHOOPTS) "Cleaning up (including 3rd party libraries)"
+	@echo "Cleaning up (including 3rd party libraries)"
 	@rm -f $(3RDPARTY_OBJS)
 
 .PHONY: FORCE
