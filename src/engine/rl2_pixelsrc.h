@@ -24,6 +24,7 @@ rl2_PixelSourceTransform;
 typedef uint32_t rl2_ARGB8888;
 typedef struct rl2_PixelSource* rl2_PixelSource;
 
+rl2_PixelSource rl2_newPixelSource(unsigned const width, unsigned const height);
 rl2_PixelSource rl2_initPixelSource(void const* const data, size_t const size);
 rl2_PixelSource rl2_readPixelSource(rl2_Filesys const filesys, char const* const path);
 
@@ -38,6 +39,8 @@ unsigned rl2_pixelSourceWidth(rl2_PixelSource const source);
 unsigned rl2_pixelSourceHeight(rl2_PixelSource const source);
 
 rl2_ARGB8888 rl2_getPixel(rl2_PixelSource const source, unsigned const x, unsigned const y);
+void rl2_fillPixelSource(rl2_PixelSource const source, rl2_ARGB8888 const color);
+void rl2_putPixel(rl2_PixelSource const source, unsigned const x, unsigned const y, rl2_ARGB8888 const color);
 
 #ifdef RL2_BUILD_DEBUG
     char const* rl2_getPixelSourcePath(rl2_PixelSource const source);

@@ -327,6 +327,18 @@ static bool rl2_isPng(void const* const header) {
     return memcmp(header, png_header, 8) == 0;
 }
 
+rl2_PixelSource rl2_newPixelSource(unsigned const width, unsigned const height) {
+    size_t const num_pixels = width * height;
+    rl2_PixelSource source = rl2_alloc(sizeof(*source) + sizeof(source->data[0]) * (num_pixels - 1));
+
+    if (source == NULL) {
+        RL2_ERROR(TAG "out of memory");
+        return NULL;
+    }
+
+    return source;
+}
+
 rl2_PixelSource rl2_initPixelSource(void const* const data, size_t const size) {
 
     rl2_Reader reader;
@@ -459,6 +471,35 @@ rl2_ARGB8888 rl2_getPixel(rl2_PixelSource const source, unsigned const x, unsign
 
     RL2_WARN(TAG "pixel coordinates outside bounds: %u, %u", x, y);
     return 0;
+}
+
+void rl2_fillPixelSource(rl2_PixelSource const source, rl2_ARGB8888 const color) {
+    unsigned const width = source->width;
+    unsigned const height = source->height;
+    size_t const pitch = source->pitch;
+    rl2_ARGB8888* pixel = source->abgr;
+
+    for (unsigned y = 0; y < height; y++) {
+        rl2_ARGB8888 const* const saved_pixel = pixel;
+
+        for (unsigned x = 0; x < width; x++) {
+            *pixel++ = color;
+        }
+
+        pixel = (rl2_ARGB8888*)((uint8_t*)saved_pixel + pitch);
+    }
+}
+
+void rl2_putPixel(rl2_PixelSource const source, unsigned const x, unsigned const y, rl2_ARGB8888 const color) {
+    unsigned const width = source->width;
+    unsigned const height = source->height;
+
+    if (x < width && y < height) {
+        source->abgr[y * source->pitch + x] = color;
+        return;
+    }
+
+    RL2_WARN(TAG "pixel coordinates outside bounds: %u, %u", x, y);
 }
 
 #ifdef RL2_BUILD_DEBUG
