@@ -15,8 +15,9 @@ CFLAGS = -std=c99 -Wall -Wpedantic -Werror -fPIC
 DEFINES += -DWITH_MEM_SRCDST=0 # libjpeg-turbo
 
 INCLUDES += -Isrc/engine -Isrc/generated
-INCLUDES += -Isrc/libjpeg-turbo # libjpeg-turbo
-INCLUDES += -Isrc/libpng -Isrc/zlib # libpng and zlib
+INCLUDES += -Isrc/3rdparty/libjpeg-turbo # libjpeg-turbo
+INCLUDES += -Isrc/3rdparty/libpng -Isrc/3rdparty/zlib # libpng and zlib
+INCLUDES += -Isrc/3rdparty/al_bdf # al_bdf
 
 LIBS = -lm
 
@@ -27,8 +28,8 @@ else
 endif
 
 ENGINE_OBJS = \
-	src/engine/rl2_canvas.o src/engine/rl2_djb2.o src/engine/rl2_filesys.o src/engine/rl2_heap.o src/engine/rl2_log.o \
-	src/engine/rl2_image.o src/engine/rl2_pixelsrc.o src/engine/rl2_sprite.o
+	src/engine/rl2_canvas.o src/engine/rl2_djb2.o src/engine/rl2_filesys.o src/engine/rl2_font.o src/engine/rl2_heap.o \
+	src/engine/rl2_log.o src/engine/rl2_image.o src/engine/rl2_pixelsrc.o src/engine/rl2_sprite.o
 
 LIBJPEG_TURBO_OBJS = \
 	src/3rdparty/libjpeg-turbo/jaricom.o src/3rdparty/libjpeg-turbo/jcomapi.o src/3rdparty/libjpeg-turbo/jdapimin.o \
