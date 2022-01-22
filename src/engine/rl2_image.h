@@ -1,25 +1,25 @@
-#ifndef HH2_IMAGE_H__
-#define HH2_IMAGE_H__
+#ifndef RL2_IMAGE_H__
+#define RL2_IMAGE_H__
 
-#include "pixelsrc.h"
-#include "canvas.h"
+#include "rl2_pixelsrc.h"
+#include "rl2_canvas.h"
 
-typedef struct hh2_Image* hh2_Image;
+typedef struct rl2_Image* rl2_Image;
 
-hh2_Image hh2_createImage(hh2_PixelSource source);
-void hh2_destroyImage(hh2_Image image);
+rl2_Image rl2_createImage(rl2_PixelSource const source);
+void rl2_destroyImage(rl2_Image const image);
 
-unsigned hh2_imageWidth(hh2_Image image);
-unsigned hh2_imageHeight(hh2_Image image);
-size_t hh2_changedPixels(hh2_Image image);
+unsigned rl2_imageWidth(rl2_Image const image);
+unsigned rl2_imageHeight(rl2_Image const image);
+size_t rl2_changedPixels(rl2_Image const image);
 
-hh2_RGB565* hh2_blit(hh2_Image image, hh2_Canvas canvas, int x0, int y0, hh2_RGB565* bg);
-void hh2_unblit(hh2_Image image, hh2_Canvas canvas, int x0, int y0, hh2_RGB565 const* bg);
+rl2_RGB565* rl2_blit(rl2_Image const image, rl2_Canvas const canvas, int const x0, int const y0, rl2_RGB565* bg);
+void rl2_unblit(rl2_Image const image, rl2_Canvas const canvas, int const x0, int const y0, rl2_RGB565 const* const bg);
 
-void hh2_stamp(hh2_Image image, hh2_Canvas canvas, int x0, int y0);
+void rl2_stamp(rl2_Image const image, rl2_Canvas const canvas, int const x0, int const y0);
 
-#ifdef HH2_DEBUG
-char const* hh2_getImagePath(hh2_Image image);
+#ifdef RL2_BUILD_DEBUG
+char const* rl2_getImagePath(rl2_Image const image);
 #endif
 
-#endif // HH2_IMAGE_H__
+#endif // RL2_IMAGE_H__
