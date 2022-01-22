@@ -19,7 +19,7 @@ struct rl2_PixelSource {
     size_t pitch;
     rl2_PixelSource parent;
 
-#ifdef RL2_DEBUG
+#ifdef RL2_BUILD_DEBUG
     char const* path;
 #endif
 
@@ -337,7 +337,7 @@ rl2_PixelSource rl2_initPixelSource(void const* const data, size_t const size) {
 
     rl2_PixelSource const source = rl2_isPng(data) ? rl2_readPng(&reader) : rl2_readJpeg(&reader);
 
-#ifdef RL2_DEBUG
+#ifdef RL2_BUILD_DEBUG
     source->path = NULL;
 #endif
 
@@ -371,7 +371,7 @@ rl2_PixelSource rl2_readPixelSource(rl2_Filesys const filesys, char const* const
     rl2_PixelSource const source = rl2_isPng(header) ? rl2_readPng(&reader) : rl2_readJpeg(&reader);
     rl2_close(file);
 
-#ifdef RL2_DEBUG
+#ifdef RL2_BUILD_DEBUG
     if (source != NULL) {
         size_t const path_len = strlen(path);
         char* const path_dup = (char*)rl2_alloc(path_len + 1);
@@ -417,7 +417,7 @@ rl2_PixelSource rl2_subPixelSource(
     source->abgr = parent->abgr + y0 * parent->pitch + x0;
     source->parent = parent;
 
-#ifdef RL2_DEBUG
+#ifdef RL2_BUILD_DEBUG
     char path[64];
     snprintf(path, sizeof(path), "Child of %p", (void*)parent);
 
@@ -434,7 +434,7 @@ rl2_PixelSource rl2_subPixelSource(
 }
 
 void rl2_destroyPixelSource(rl2_PixelSource const source) {
-#ifdef RL2_DEBUG
+#ifdef RL2_BUILD_DEBUG
     rl2_free((void*)source->path);
 #endif
 
@@ -461,8 +461,8 @@ rl2_ARGB8888 rl2_getPixel(rl2_PixelSource const source, unsigned const x, unsign
     return 0;
 }
 
-#ifdef HH2_DEBUG
-char const* hh2_getPixelSourcePath(hh2_PixelSource const source) {
+#ifdef RL2_BUILD_DEBUG
+char const* rl2_getPixelSourcePath(rl2_PixelSource const source) {
     return source->path;
 }
 #endif

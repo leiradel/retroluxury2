@@ -1,5 +1,5 @@
-#ifndef HH2_PIXELSRC_H__
-#define HH2_PIXELSRC_H__
+#ifndef RL2_PIXELSRC_H__
+#define RL2_PIXELSRC_H__
 
 #include "rl2_filesys.h"
 
@@ -39,8 +39,8 @@ unsigned rl2_pixelSourceHeight(rl2_PixelSource const source);
 
 rl2_ARGB8888 rl2_getPixel(rl2_PixelSource const source, unsigned const x, unsigned const y);
 
-#ifdef RL2_DEBUG
-    char const* hh2_getPixelSourcePath(hh2_PixelSource const source);
+#ifdef RL2_BUILD_DEBUG
+    char const* rl2_getPixelSourcePath(rl2_PixelSource const source);
 #endif
 
-#endif // HH2_PIXELSRC_H__
+#endif // RL2_PIXELSRC_H__
