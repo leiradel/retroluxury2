@@ -7,3 +7,6 @@
 [submodule "src/3rdparty/libjpeg-turbo"]
 	path = src/3rdparty/libjpeg-turbo
 	url = https://github.com/libjpeg-turbo/libjpeg-turbo.git
+[submodule "src/3rdparty/al_bdf"]
+	path = src/3rdparty/al_bdf
+	url = https://github.com/leiradel/al_bdf.git
