@@ -28,8 +28,16 @@ else
 endif
 
 ENGINE_OBJS = \
-	src/engine/rl2_canvas.o src/engine/rl2_djb2.o src/engine/rl2_filesys.o src/engine/rl2_font.o src/engine/rl2_heap.o \
-	src/engine/rl2_log.o src/engine/rl2_image.o src/engine/rl2_pixelsrc.o src/engine/rl2_sprite.o
+	src/engine/rl2_canvas.o \
+	src/engine/rl2_djb2.o \
+	src/engine/rl2_filesys.o \
+	src/engine/rl2_font.o \
+	src/engine/rl2_heap.o \
+	src/engine/rl2_log.o \
+	src/engine/rl2_image.o \
+	src/engine/rl2_pixelsrc.o \
+	src/engine/rl2_sprite.o \
+	src/engine/rl2_sound.o
 
 LIBJPEG_TURBO_OBJS = \
 	src/3rdparty/libjpeg-turbo/jaricom.o src/3rdparty/libjpeg-turbo/jcomapi.o src/3rdparty/libjpeg-turbo/jdapimin.o \
