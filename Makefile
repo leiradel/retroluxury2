@@ -14,10 +14,13 @@ CC ?= gcc
 CFLAGS = -std=c99 -Wall -Wpedantic -Werror -fPIC
 DEFINES += -DWITH_MEM_SRCDST=0 # libjpeg-turbo
 
-INCLUDES += -Isrc/engine -Isrc/generated
-INCLUDES += -Isrc/3rdparty/libjpeg-turbo # libjpeg-turbo
-INCLUDES += -Isrc/3rdparty/libpng -Isrc/3rdparty/zlib # libpng and zlib
-INCLUDES += -Isrc/3rdparty/al_bdf # al_bdf
+INCLUDES += -Isrc/engine
+INCLUDES += -Isrc/generated
+INCLUDES += -Isrc/3rdparty/libjpeg-turbo
+INCLUDES += -Isrc/3rdparty/libpng
+INCLUDES += -Isrc/3rdparty/zlib
+INCLUDES += -Isrc/3rdparty/al_bdf
+INCLUDES += -Isrc/3rdparty/dr_libs
 
 LIBS = -lm
 
