@@ -13,3 +13,6 @@
 [submodule "src/3rdparty/vorbis"]
 	path = src/3rdparty/vorbis
 	url = https://gitlab.xiph.org/xiph/vorbis.git
+[submodule "src/3rdparty/dr_libs"]
+	path = src/3rdparty/dr_libs
+	url = https://github.com/mackron/dr_libs.git
