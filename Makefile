@@ -39,6 +39,7 @@ ENGINE_OBJS = \
 	src/engine/rl2_log.o \
 	src/engine/rl2_image.o \
 	src/engine/rl2_pixelsrc.o \
+	src/engine/rl2_rand.o \
 	src/engine/rl2_sprite.o \
 	src/engine/rl2_sound.o
 
