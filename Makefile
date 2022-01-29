@@ -13,6 +13,7 @@ endif
 CC ?= gcc
 CFLAGS = -std=c99 -Wall -Wpedantic -Werror -fPIC
 DEFINES += -DWITH_MEM_SRCDST=0 # libjpeg-turbo
+DEFINES += -DOUTSIDE_SPEEX -DRANDOM_PREFIX=speex -DEXPORT= -DFIXED_POINT # speex
 
 INCLUDES += -Isrc/engine
 INCLUDES += -Isrc/generated
@@ -88,6 +89,9 @@ LIBPNG_OBJS = \
 	src/3rdparty/libpng/pngwrite.o \
 	src/3rdparty/libpng/pngwtran.o \
 	src/3rdparty/libpng/pngwutil.o
+
+SPEEX_OBJS = \
+	src/3rdparty/speex/resample.o
 
 ZLIB_OBJS = \
 	src/3rdparty/zlib/adler32.o \
