@@ -1,53 +1,156 @@
-#include "sound.h"
-#include "filesys.h"
-#include "log.h"
+#include "rl2_sound.h"
+#include "rl2_heap.h"
+#include "rl2_log.h"
 
 #include <speex_resampler.h>
 
 #define DR_WAV_IMPLEMENTATION
 #include <dr_wav.h>
 
+#define OV_EXCLUDE_STATIC_CALLBACKS
+#include <vorbis/vorbisfile.h>
+
 #include <inttypes.h>
 
-#define HH2_SAMPLE_RATE 44100
-#define HH2_SAMPLES_PER_VIDEO_FRAME (HH2_SAMPLE_RATE / 60)
-#define HH2_MAX_CHANNELS 8
-#define HH2_MAX_VOICES 16
+#define RL2_SAMPLE_RATE 44100
+#define RL2_SAMPLES_PER_VIDEO_FRAME (RL2_SAMPLE_RATE / 60)
 
 #define TAG "SND "
 
-typedef int16_t hh2_Sample;
+typedef int16_t rl2_Sample;
 
 // Make sure our sample has 16 bits
-typedef char hh2_staticAssertSoundSampleMustBeInt16[sizeof(hh2_Sample) == sizeof(int16_t) ? 1 : -1];
+typedef char rl2_staticAssertSoundSampleMustBeInt16[sizeof(rl2_Sample) == sizeof(int16_t) ? 1 : -1];
 // Make sure Speex sample has the same number of bits as we have
-typedef char hh2_staticAssertSpeexSampleMustBeHh2Sample[sizeof(spx_int16_t) == sizeof(hh2_Sample) ? 1 : -1];
+typedef char rl2_staticAssertSpeexSampleMustBeHh2Sample[sizeof(spx_int16_t) == sizeof(rl2_Sample) ? 1 : -1];
 
-struct hh2_Pcm {
-    size_t sample_count;
-    hh2_Sample samples[1];
+typedef enum {
+    RL2_WAV,
+    RL2_VORBIS
+}
+rl2_SoundType;
+
+struct rl2_Sound {
+    rl2_SoundType type;
+
+    union {
+        struct {
+            rl2_Sample* frames;
+            size_t num_frames;
+        }
+        wav;
+
+        struct {
+            rl2_File file;
+        }
+        vorbis;
+    }
+    source;
 };
 
-typedef struct {
-    hh2_Pcm pcm;
-    size_t position;
+struct rl2_Voice {
+    rl2_Sound sound;
+    uint8_t volume;
+    bool repeat;
+    rl2_Finished finished_cb;
+
+    rl2_Voice previous;
+    rl2_Voice next;
+
+    union {
+        struct {
+            size_t position;
+        }
+        wav;
+
+        struct {
+            OggVorbis_File ogg;
+            long position;
+        }
+        vorbis;
+    }
+    state;
+};
+
+static int16_t rl2_audioFrames[RL2_SAMPLES_PER_VIDEO_FRAME * 2];
+static rl2_Voice rl2_voiceList = NULL;
+
+static bool rl2_resample(
+    spx_uint32_t const in_rate,
+    spx_int16_t const* const in_data, spx_uint32_t in_samples,
+    spx_int16_t* const out_data, spx_uint32_t out_samples) {
+
+    RL2_INFO(
+        TAG "resampling from %u Hz to %d (%" PRIu32 " samples in, %" PRIu32 " samples out",
+        in_rate, RL2_SAMPLE_RATE, in_samples, out_samples
+    );
+
+    int error;
+    SpeexResamplerState* const resampler = speex_resampler_init(
+        1, in_rate, RL2_SAMPLE_RATE, SPEEX_RESAMPLER_QUALITY_DEFAULT, &error);
+
+    if (resampler == NULL) {
+        RL2_ERROR(TAG "error initializing resampler: %s", speex_resampler_strerror(error));
+        return false;
+    }
+
+    error = speex_resampler_process_interleaved_int(resampler, in_data, &in_samples, out_data, &out_samples);
+
+    if (error != RESAMPLER_ERR_SUCCESS) {
+        RL2_ERROR(TAG "error resampling: %s", speex_resampler_strerror(error));
+        speex_resampler_destroy(resampler);
+        return false;
+    }
+
+    speex_resampler_destroy(resampler);
+    return true;
 }
-hh2_Voice;
 
-static int16_t hh2_audioFrames[HH2_SAMPLES_PER_VIDEO_FRAME * 2];
-static hh2_Voice hh2_voices[HH2_MAX_VOICES] = {{NULL, 0}};
+static void rl2_addVoice(rl2_Voice const voice) {
+    if (rl2_voiceList != NULL) {
+        rl2_voiceList->previous = voice;
+    }
 
-static size_t hh2_wavRead(void* const userdata, void* const buffer, size_t const count) {
-    hh2_File const file = (hh2_File)userdata;
-    return hh2_read(file, buffer, count);
+    voice->next = rl2_voiceList;
+    voice->previous = NULL;
+    rl2_voiceList = voice;
 }
 
-static drwav_bool32 hh2_wavSeek(void* const userdata, int const offset, drwav_seek_origin const origin) {
-    hh2_File const file = (hh2_File)userdata;
-    return hh2_seek(file, offset, origin == drwav_seek_origin_start ? SEEK_SET : SEEK_CUR) == 0;
+static void rl2_removeVoice(rl2_Voice const voice) {
+    if (voice->previous != NULL) {
+        voice->previous->next = voice->next;
+    }
+
+    if (voice->next != NULL) {
+        voice->next->previous = voice->previous;
+    }
+
+    if (rl2_voiceList == voice) {
+        rl2_voiceList = voice->next;
+    }
+
+    rl2_free(voice);
 }
 
-static char const* hh2_wavError(drwav_result const error) {
+// ##      ##    ###    ##     ## 
+// ##  ##  ##   ## ##   ##     ## 
+// ##  ##  ##  ##   ##  ##     ## 
+// ##  ##  ## ##     ## ##     ## 
+// ##  ##  ## #########  ##   ##  
+// ##  ##  ## ##     ##   ## ##   
+//  ###  ###  ##     ##    ###    
+
+static size_t rl2_drwavRead(void* const userdata, void* const buffer, size_t const count) {
+    rl2_File const file = (rl2_File)userdata;
+    return rl2_read(file, buffer, count);
+}
+
+static drwav_bool32 rl2_drwavSeek(void* const userdata, int const offset, drwav_seek_origin const origin) {
+    rl2_File const file = (rl2_File)userdata;
+    return rl2_seek(file, offset, origin == drwav_seek_origin_start ? SEEK_SET : SEEK_CUR) == 0;
+}
+
+static char const* rl2_drwavError(drwav_result const error) {
     switch (error) {
         case DRWAV_SUCCESS: return "DRWAV_SUCCESS";
         case DRWAV_ERROR: return "DRWAV_ERROR";
@@ -107,114 +210,177 @@ static char const* hh2_wavError(drwav_result const error) {
     }
 }
 
-static bool hh2_resample(
-    spx_uint32_t const in_rate,
-    spx_int16_t const* const in_data, spx_uint32_t in_samples,
-    spx_int16_t* const out_data, spx_uint32_t out_samples) {
+static rl2_Sound rl2_wavRead(rl2_File const file) {
+    rl2_Sound sound = (rl2_Sound)rl2_alloc(sizeof(*sound));
 
-    HH2_LOG(
-        HH2_LOG_INFO, TAG "resampling from %u Hz to %d (%" PRIu32 " samples in, %" PRIu32 " samples out",
-        in_rate, HH2_SAMPLE_RATE, in_samples, out_samples
-    );
-
-    int error;
-    SpeexResamplerState* const resampler = speex_resampler_init(
-        1, in_rate, HH2_SAMPLE_RATE, SPEEX_RESAMPLER_QUALITY_DEFAULT, &error);
-
-    if (resampler == NULL) {
-        HH2_LOG(HH2_LOG_ERROR, TAG "error initializing resampler: %s", speex_resampler_strerror(error));
-        return false;
-    }
-
-    error = speex_resampler_process_int(resampler, 0, in_data, &in_samples, out_data, &out_samples);
-
-    if (error != RESAMPLER_ERR_SUCCESS) {
-        HH2_LOG(HH2_LOG_ERROR, TAG "error resampling: %s", speex_resampler_strerror(error));
-        speex_resampler_destroy(resampler);
-        return false;
-    }
-
-    speex_resampler_destroy(resampler);
-    return true;
-}
-
-hh2_Pcm hh2_readPcm(hh2_Filesys filesys, char const* path) {
-    hh2_File const file = hh2_openFile(filesys, path);
-
-    if (file == NULL) {
-        // Error already logged
+    if (sound == NULL) {
+        RL2_ERROR(TAG "out of memory");
         return NULL;
     }
 
     drwav wav;
 
-    if (!drwav_init(&wav, hh2_wavRead, hh2_wavSeek, file, NULL)) {
-        HH2_LOG(HH2_LOG_ERROR, TAG "error loading WAV: %s", hh2_wavError(drwav_uninit(&wav)));
+    if (!drwav_init(&wav, rl2_drwavRead, rl2_drwavSeek, file, NULL)) {
+        RL2_ERROR(TAG "error loading WAV: %s", rl2_drwavError(drwav_uninit(&wav)));
+error1:
+        rl2_close(file);
         return NULL;
     }
 
-    if (wav.channels > HH2_MAX_CHANNELS) {
-        HH2_LOG(HH2_LOG_ERROR, TAG "too many channels in WAV: %u, we only support %d", wav.channels, HH2_MAX_CHANNELS);
+    if (wav.channels > 2) {
+        RL2_ERROR(TAG "too many channels in WAV: %u, we only support mono and stereo", wav.channels);
+error2:
         drwav_uninit(&wav);
-        hh2_close(file);
-        return NULL;
+        goto error1;
     }
 
-    size_t const sample_count = wav.totalPCMFrameCount * HH2_SAMPLE_RATE / wav.sampleRate;
-    hh2_Pcm pcm = (hh2_Pcm)malloc(sizeof(*pcm) + (sample_count - 1) * sizeof(hh2_Sample));
+    sound->type = RL2_WAV;
+    sound->source.wav.num_frames = wav.totalPCMFrameCount;
+    sound->source.wav.frames = (rl2_Sample*)rl2_alloc(sound->source.wav.num_frames * sizeof(rl2_Sample) * 2);
 
-    if (pcm == NULL) {
-        HH2_LOG(HH2_LOG_ERROR, TAG "out of memory");
-        drwav_uninit(&wav);
-        hh2_close(file);
-        return NULL;
-    }
-
-    pcm->sample_count = sample_count;
-    hh2_Sample* samples = pcm->samples;
-
-    if (wav.sampleRate != HH2_SAMPLE_RATE) {
-        samples = (hh2_Sample*)malloc(wav.totalPCMFrameCount * sizeof(hh2_Sample));
+    if (sound->source.wav.frames == NULL) {
+        RL2_ERROR(TAG "out of memory");
+        goto error3;
     }
 
     for (size_t i = 0; i < wav.totalPCMFrameCount; i++) {
-        drwav_int16 frame[HH2_MAX_CHANNELS];
+        drwav_int16 frame[2];
         drwav_uint64 const num_read = drwav_read_pcm_frames_s16(&wav, 1, frame);
 
         if (num_read != 1) {
-            HH2_LOG(HH2_LOG_ERROR, TAG "error reading samples: %s", hh2_wavError(drwav_uninit(&wav)));
-
-            if (wav.sampleRate != HH2_SAMPLE_RATE) {
-                free(samples);
-            }
-
-            free(pcm);
-            hh2_close(file);
-            return NULL;
+            RL2_ERROR(TAG "error reading samples: %s", rl2_drwavError(drwav_uninit(&wav)));
+error3:
+            rl2_free((void*)sound->source.wav.frames);
+            goto error2;
         }
 
-        samples[i] = frame[0]; // We only support mono, get the first sample
+        sound->source.wav.frames[i * 2] = frame[0];
+        sound->source.wav.frames[i * 2 + 1] = wav.channels == 1 ? frame[0] : frame[1];
     }
 
     drwav_uninit(&wav);
-    hh2_close(file);
+    rl2_close(file);
 
-    if (wav.sampleRate != HH2_SAMPLE_RATE) {
-        if (!hh2_resample(wav.sampleRate, samples, wav.totalPCMFrameCount, pcm->samples, sample_count)) {
-            // Error already logged
-            free(samples);
-            free(pcm);
-            return NULL;
+    if (wav.sampleRate != RL2_SAMPLE_RATE) {
+        size_t const num_resampled = wav.totalPCMFrameCount * RL2_SAMPLE_RATE / wav.sampleRate;
+        rl2_Sample* resampled = (rl2_Sample*)rl2_alloc(num_resampled * sizeof(rl2_Sample) * 2);
+
+        if (resampled == NULL) {
+            RL2_ERROR(TAG "out of memory");
+            goto error3;
         }
 
-        free(samples);
+        if (!rl2_resample(wav.sampleRate, sound->source.wav.frames, sound->source.wav.num_frames, resampled, num_resampled)) {
+            // Error already logged
+            rl2_free(resampled);
+            goto error3;
+        }
+
+        rl2_free(sound->source.wav.frames);
+        sound->source.wav.frames = resampled;
+        sound->source.wav.num_frames = num_resampled;
     }
 
-    return pcm;
+    return sound;
+}
+
+static void rl2_wavDestroy(rl2_Sound const sound) {
+    rl2_free(sound->source.wav.frames);
+    rl2_free(sound);
+}
+
+static rl2_Voice rl2_wavPlay(rl2_Sound const sound, uint8_t const volume, bool const repeat, rl2_Finished finished_cb)
+{
+    rl2_Voice voice = (rl2_Voice)rl2_alloc(sizeof(*voice));
+
+    if (voice == NULL) {
+        RL2_ERROR(TAG "out of memory");
+        return NULL;
+    }
+
+    voice->sound = sound;
+    voice->volume = volume;
+    voice->repeat = repeat;
+    voice->finished_cb = finished_cb;
+    voice->state.wav.position = 0;
+
+    rl2_addVoice(voice);
+    return voice;
+}
+
+static void rl2_wavStop(rl2_Voice const voice) {
+    if (voice->finished_cb != NULL) {
+        voice->finished_cb(voice);
+    }
+
+    rl2_removeVoice(voice);
+}
+
+static void rl2_wavMix(rl2_Voice const voice, int32_t* const buffer, size_t const num_frames)
+{
+    size_t const available_frames = voice->sound->source.wav.num_frames - voice->state.wav.position;
+    size_t const frames_to_mix = available_frames < num_frames ? available_frames : num_frames;
+    rl2_Sample const* const frames = voice->sound->source.wav.frames + voice->state.wav.position * 2;
+    int32_t const volume = voice->volume + (voice->volume >= 128);
+
+    for (size_t i = 0; i < frames_to_mix * 2; i++) {
+        int32_t const sample = frames[i] * volume / 256;
+        buffer[i] += sample;
+    }
+
+    voice->state.wav.position += frames_to_mix;
+
+    if (voice->state.wav.position == voice->sound->source.wav.num_frames) {
+        if (voice->repeat) {
+            voice->state.wav.position = 0;
+
+            if (frames_to_mix < num_frames) {
+                rl2_wavMix(voice, buffer + frames_to_mix * 2, num_frames - frames_to_mix);
+            }
+        }
+        else {
+            if (voice->finished_cb != NULL) {
+                voice->finished_cb(voice);
+            }
+
+            rl2_removeVoice(voice);
+        }
+    }
+}
+
+// ##     ##  #######  ########  ########  ####  ######  
+// ##     ## ##     ## ##     ## ##     ##  ##  ##    ## 
+// ##     ## ##     ## ##     ## ##     ##  ##  ##       
+// ##     ## ##     ## ########  ########   ##   ######  
+//  ##   ##  ##     ## ##   ##   ##     ##  ##        ## 
+//   ## ##   ##     ## ##    ##  ##     ##  ##  ##    ## 
+//    ###     #######  ##     ## ########  ####  ######  
+
+#if 0
+static rl2_Sound rl2_readVorbis(rl2_Filesys filesys, char const* path) {
+    rl2_Sound sound = (rl2_Sound)rl2_alloc(sizeof(*sound));
+
+    if (sound == NULL) {
+        RL2_ERROR(TAG "out of memory");
+        return NULL;
+    }
+
+    rl2_File const file = rl2_openFile(filesys, path);
+
+    if (file == NULL) {
+        // Error already logged
+error1:
+        rl2_free(sound);
+        return NULL;
+    }
+
+    sound->type = RL2_VORBIS;
+    sound->source.vorbis.file = file;
+    return sound;
 }
 
 void hh2_destroyPcm(hh2_Pcm pcm) {
-    for (unsigned i = 0; i < HH2_MAX_VOICES; i++) {
+    for (unsigned i = 0; i < RL2_MAX_VOICES; i++) {
         if (hh2_voices[i].pcm == pcm) {
             hh2_voices[i].pcm = NULL;
             hh2_voices[i].position = 0;
@@ -225,7 +391,7 @@ void hh2_destroyPcm(hh2_Pcm pcm) {
 }
 
 bool hh2_playPcm(hh2_Pcm pcm) {
-    for (unsigned i = 0; i < HH2_MAX_VOICES; i++) {
+    for (unsigned i = 0; i < RL2_MAX_VOICES; i++) {
         if (hh2_voices[i].pcm == NULL) {
             hh2_voices[i].pcm = pcm;
             hh2_voices[i].position = 0;
@@ -237,14 +403,14 @@ bool hh2_playPcm(hh2_Pcm pcm) {
 }
 
 void hh2_stopPcms(void) {
-    for (unsigned i = 0; i < HH2_MAX_VOICES; i++) {
+    for (unsigned i = 0; i < RL2_MAX_VOICES; i++) {
         hh2_voices[i].pcm = NULL;
         hh2_voices[i].position = 0;
     }
 }
 
 static void hh2_mixPcm(int32_t* const buffer, hh2_Voice* const voice) {
-    size_t const buffer_free = HH2_SAMPLES_PER_VIDEO_FRAME;
+    size_t const buffer_free = RL2_SAMPLES_PER_VIDEO_FRAME;
     hh2_Pcm const pcm = voice->pcm;
 
     size_t const available = pcm->sample_count - voice->position;
@@ -268,17 +434,17 @@ static void hh2_mixPcm(int32_t* const buffer, hh2_Voice* const voice) {
 }
 
 int16_t const* hh2_soundMix(size_t* const frames) {
-    int32_t buffer[HH2_SAMPLES_PER_VIDEO_FRAME];
+    int32_t buffer[RL2_SAMPLES_PER_VIDEO_FRAME];
 
     memset(buffer, 0, sizeof(buffer));
 
-    for (unsigned i = 0; i < HH2_MAX_VOICES; i++) {
+    for (unsigned i = 0; i < RL2_MAX_VOICES; i++) {
         if (hh2_voices[i].pcm) {
             hh2_mixPcm(buffer, hh2_voices + i);
         }
     }
 
-    for (size_t i = 0, j = 0; i < HH2_SAMPLES_PER_VIDEO_FRAME; i++, j += 2) {
+    for (size_t i = 0, j = 0; i < RL2_SAMPLES_PER_VIDEO_FRAME; i++, j += 2) {
         int32_t const s32 = buffer[i];
         int16_t const s16 = s32 < -32768 ? -32768 : s32 > 32767 ? 32767 : s32;
 
@@ -286,6 +452,98 @@ int16_t const* hh2_soundMix(size_t* const frames) {
         hh2_audioFrames[j + 1] = s16;
     }
 
-    *frames = HH2_SAMPLES_PER_VIDEO_FRAME;
+    *frames = RL2_SAMPLES_PER_VIDEO_FRAME;
     return hh2_audioFrames;
+}
+#endif
+
+rl2_Sound rl2_readSound(rl2_Filesys const filesys, char const* const path) {
+    rl2_File const file = rl2_openFile(filesys, path);
+
+    if (file == NULL) {
+        // Error already logged
+        return NULL;
+    }
+
+    uint8_t header[16];
+
+    if (rl2_read(file, header, 8) != 8) {
+        RL2_ERROR(TAG "error reading from sound \"%s\"", path);
+        rl2_close(file);
+        return NULL;
+    }
+
+    rl2_seek(file, 0, SEEK_SET);
+
+    static uint8_t const wav_header[] = {'R', 'I', 'F', 'F', 0, 0, 0, 0, 'W', 'A', 'V', 'E', 'f', 'm', 't', ' '};
+    header[4] = header[5] = header[6] = header[7] = 0;
+
+    if (memcmp(header, wav_header, 8) == 0) {
+        return rl2_wavRead(file);
+    }
+
+    return NULL;
+}
+
+void rl2_destroySound(rl2_Sound const sound) {
+    switch (sound->type) {
+        case RL2_WAV: rl2_wavDestroy(sound); break;
+        case RL2_VORBIS: break;
+    }
+}
+
+rl2_Voice rl2_play(rl2_Sound const sound, uint8_t const volume, bool const repeat, rl2_Finished finished_cb) {
+    switch (sound->type) {
+        case RL2_WAV: return rl2_wavPlay(sound, volume, repeat, finished_cb);
+        case RL2_VORBIS: return NULL;
+    }
+
+    return NULL;
+}
+
+void rl2_setVolume(rl2_Voice const voice, uint8_t const volume) {
+    voice->volume = volume;
+}
+
+void rl2_stop(rl2_Voice const voice) {
+    switch (voice->sound->type) {
+        case RL2_WAV: rl2_wavStop(voice); break;
+        case RL2_VORBIS: break;
+    }
+}
+
+void rl2_stopAll(void) {
+    rl2_Voice voice = rl2_voiceList;
+
+    while (voice != NULL) {
+        rl2_Voice next = voice->next;
+        rl2_stop(voice);
+        voice = next;
+    }
+}
+
+int16_t const* rl2_soundMix(size_t* const num_frames) {
+    int32_t buffer[RL2_SAMPLES_PER_VIDEO_FRAME];
+    memset(buffer, 0, sizeof(buffer));
+
+    rl2_Voice voice = rl2_voiceList;
+
+    while (voice != NULL) {
+        switch (voice->sound->type) {
+            case RL2_WAV: rl2_wavMix(voice, buffer, RL2_SAMPLES_PER_VIDEO_FRAME); break;
+            case RL2_VORBIS: break;
+        }
+
+        voice = voice->next;
+    }
+
+    for (size_t i = 0; i < RL2_SAMPLES_PER_VIDEO_FRAME; i++) {
+        int32_t const s32 = buffer[i];
+        int16_t const s16 = s32 < -32768 ? -32768 : s32 > 32767 ? 32767 : s32;
+
+        rl2_audioFrames[i] = s16;
+    }
+
+    *num_frames = RL2_SAMPLES_PER_VIDEO_FRAME;
+    return rl2_audioFrames;
 }

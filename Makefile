@@ -17,11 +17,12 @@ DEFINES += -DOUTSIDE_SPEEX -DRANDOM_PREFIX=speex -DEXPORT= -DFIXED_POINT # speex
 
 INCLUDES += -Isrc/engine
 INCLUDES += -Isrc/generated
-INCLUDES += -Isrc/3rdparty/libjpeg-turbo
-INCLUDES += -Isrc/3rdparty/libpng
-INCLUDES += -Isrc/3rdparty/zlib
 INCLUDES += -Isrc/3rdparty/al_bdf
 INCLUDES += -Isrc/3rdparty/dr_libs
+INCLUDES += -Isrc/3rdparty/libjpeg-turbo
+INCLUDES += -Isrc/3rdparty/libpng
+INCLUDES += -Isrc/3rdparty/speex
+INCLUDES += -Isrc/3rdparty/zlib
 
 LIBS = -lm
 
@@ -104,7 +105,7 @@ ZLIB_OBJS = \
 	src/3rdparty/zlib/zutil.o
 
 RETROLUXURY2_OBJS = $(ENGINE_OBJS)
-3RDPARTY_OBJS = $(LIBJPEG_TURBO_OBJS) $(LIBPNG_OBJS) $(ZLIB_OBJS)
+3RDPARTY_OBJS = $(LIBJPEG_TURBO_OBJS) $(LIBPNG_OBJS) $(SPEEX_OBJS) $(ZLIB_OBJS)
 
 all: libretroluxury2.a
 
