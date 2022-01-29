@@ -1,5 +1,5 @@
-#ifndef RL2_BDFFONT_H
-#define RL2_BDFFONT_H
+#ifndef RL2_FONT_H__
+#define RL2_FONT_H__
 
 #include "rl2_pixelsrc.h"
 #include "rl2_filesys.h"
@@ -18,4 +18,4 @@ rl2_PixelSource rl2_renderText(
     rl2_Font const font, int* const x0, int* const y0, char const* const text,
     rl2_ARGB8888 const bg_color, rl2_ARGB8888 const fg_color);
 
-#endif /* RL2_BDFFONT_H */
+#endif // RL2_FONT_H__
