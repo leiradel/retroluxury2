@@ -1,19 +1,27 @@
 #include "rl2_heap.h"
+#include "rl2_log.h"
 
 #include <stdlib.h>
+
+#define TAG "MEM "
 
 static void* rl2_libcAlloc(void* userdata, void* pointer, size_t size) {
     (void)userdata;
 
     if (pointer == NULL) {
-        return malloc(size);
+        pointer = malloc(size);
+        RL2_DEBUG(TAG "allocated %zu bytes at %p", size, pointer);
+        return pointer;
     }
     else if (size == 0) {
         free(pointer);
+        RL2_DEBUG(TAG "freed %p", pointer);
         return NULL;
     }
     else {
-        return realloc(pointer, size);
+        void* new_pointer = realloc(pointer, size);
+        RL2_DEBUG(TAG "reallocated %p to %p with %zu", pointer, new_pointer, size);
+        return new_pointer;
     }
 }
 
