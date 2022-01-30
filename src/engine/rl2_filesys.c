@@ -81,6 +81,8 @@ rl2_Filesys rl2_createFilesystem(void const* const buffer, size_t const size) {
     unsigned num_entries = 0;
 
     for (; entry < end && entry->header.name[0] != 0;) {
+        RL2_DEBUG(TAG "processing entry %p", entry);
+
         uint8_t const* const name = entry->header.name;
 
         if (name[sizeof(entry->header.name) - 1] != 0) {
@@ -149,7 +151,7 @@ rl2_Filesys rl2_createFilesystem(void const* const buffer, size_t const size) {
     }
 
     qsort(filesys->entries, filesys->num_entries, sizeof(filesys->entries[0]), rl2_compareEntries);
-    RL2_DEBUG(TAG "created file system from %p", data);
+    RL2_DEBUG(TAG "created file system from %p", buffer);
     return filesys;
 }
 
@@ -170,7 +172,7 @@ static rl2_Entry* rl2_fileFind(rl2_Filesys const filesys, char const* const path
     }
     else {
         RL2_DEBUG(
-            TAG "found \"%s\" in file system %p, size %ld, hash " HH2_PRI_DJB2HASH,
+            TAG "found \"%s\" in file system %p, size %ld, hash " RL2_PRI_DJB2HASH,
             path, filesys, found->size, found->hash
         );
     }
