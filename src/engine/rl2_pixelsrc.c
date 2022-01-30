@@ -3,6 +3,7 @@
 #include "rl2_heap.h"
 
 #include <png.h>
+#include <stdio.h> // needed by jpeglib.h
 #include <jpeglib.h>
 
 #include <stdlib.h>
