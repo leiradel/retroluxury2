@@ -1,5 +1,7 @@
 #include "rl2_log.h"
 
+#include <stdio.h>
+
 static void rl2_dummyLogger(rl2_LogLevel level, char const* format, va_list ap) {
     (void)level;
     (void)format;
@@ -13,9 +15,9 @@ void rl2_setLogger(rl2_Logger const logger) {
 }
 
 #ifdef RL2_BUILD_DEBUG
-void rl2_log(rl2_LogLevel level, char const* file, unsigned line, const const* function, char const* format, ...) {
+void rl2_log(rl2_LogLevel level, char const* file, unsigned line, char const* format, ...) {
     char buffer[256];
-    snprintf(buffer, sizeof(buffer), "%s:%u(%s): %s", file, line, function, format);
+    snprintf(buffer, sizeof(buffer), "%s:%u: %s", file, line, format);
 
     va_list ap;
     va_start(ap, format);
