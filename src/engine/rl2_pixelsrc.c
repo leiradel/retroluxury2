@@ -68,13 +68,27 @@ static void rl2_pngWarn(png_structp const png, png_const_charp const error) {
     RL2_WARN(TAG "warning reading PNG: %s", error);
 }
 
+static png_voidp rl2_pngMalloc(png_structp const png, png_size_t const size) {
+    (void)png;
+    return rl2_alloc(size);
+}
+
+static void rl2_pngFree(png_structp const png, png_voidp const ptr) {
+    (void)png;
+    rl2_free(ptr);
+}
+
 static void rl2_pngRead(png_structp const png, png_bytep const buffer, size_t const count) {
     rl2_Reader* const reader = png_get_io_ptr(png);
     rl2_readFromReader(reader, buffer, count);
 }
 
 static rl2_PixelSource rl2_readPng(rl2_Reader* const reader) {
-    png_structp png = png_create_read_struct(PNG_LIBPNG_VER_STRING, NULL, rl2_pngError, rl2_pngWarn);
+    png_structp png = png_create_read_struct_2(
+        PNG_LIBPNG_VER_STRING,
+        NULL, rl2_pngError, rl2_pngWarn,
+        NULL, rl2_pngMalloc, rl2_pngFree
+    );
 
     if (png == NULL) {
         return NULL;
