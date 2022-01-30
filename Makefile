@@ -69,11 +69,11 @@ LIBJPEG_TURBO_OBJS = \
 	src/3rdparty/libjpeg-turbo/jidctint.o \
 	src/3rdparty/libjpeg-turbo/jidctred.o \
 	src/3rdparty/libjpeg-turbo/jmemmgr.o \
-	src/3rdparty/libjpeg-turbo/jmemnobs.o \
 	src/3rdparty/libjpeg-turbo/jquant1.o \
 	src/3rdparty/libjpeg-turbo/jquant2.o \
 	src/3rdparty/libjpeg-turbo/jsimd_none.o \
 	src/3rdparty/libjpeg-turbo/jutils.o
+	# src/3rdparty/libjpeg-turbo/jmemnobs.o function overriden in rl2_pixelsrc.c
 
 LIBPNG_OBJS = \
 	src/3rdparty/libpng/pngerror.o \

@@ -5,6 +5,8 @@
 #include <png.h>
 #include <stdio.h> // needed by jpeglib.h
 #include <jpeglib.h>
+#include <jmemsys.h>
+#include <jerror.h>
 
 #include <stdlib.h>
 #include <string.h>
@@ -48,7 +50,6 @@ static size_t rl2_readFromReader(rl2_Reader* const reader, void* const buffer, s
         return to_read;
     }
 }
-
 
 // ########  ##    ##  ######   
 // ##     ## ###   ## ##    ##  
@@ -209,6 +210,56 @@ typedef struct {
   jmp_buf rollback;
 }
 rl2_jpegError;
+
+GLOBAL(void*) jpeg_get_small(j_common_ptr cinfo, size_t sizeofobject) {
+    (void)cinfo;
+    return rl2_alloc(sizeofobject);
+}
+
+GLOBAL(void) jpeg_free_small(j_common_ptr cinfo, void *object, size_t sizeofobject) {
+    (void)cinfo;
+    (void)sizeofobject;
+    rl2_free(object);
+}
+
+GLOBAL(void*) jpeg_get_large(j_common_ptr cinfo, size_t sizeofobject) {
+    (void)cinfo;
+    return rl2_alloc(sizeofobject);
+}
+
+GLOBAL(void) jpeg_free_large(j_common_ptr cinfo, void *object, size_t sizeofobject) {
+    (void)cinfo;
+    (void)sizeofobject;
+    rl2_free(object);
+}
+
+GLOBAL(size_t) jpeg_mem_available(j_common_ptr cinfo, size_t min_bytes_needed, size_t max_bytes_needed, size_t already_allocated) {
+    // copied from jmemnobs.c
+    if (cinfo->mem->max_memory_to_use) {
+        if ((size_t)cinfo->mem->max_memory_to_use > already_allocated)
+            return cinfo->mem->max_memory_to_use - already_allocated;
+        else
+            return 0;
+    } else {
+        /* Here we always say, "we got all you want bud!" */
+        return max_bytes_needed;
+    }
+}
+
+GLOBAL(void) jpeg_open_backing_store(j_common_ptr cinfo, backing_store_ptr info, long total_bytes_needed) {
+    // copied from jmemnobs.c
+    ERREXIT(cinfo, JERR_NO_BACKING_STORE);
+}
+
+GLOBAL(long) jpeg_mem_init(j_common_ptr cinfo) {
+    // copied from jmemnobs.c
+    return 0;                     /* just set max_memory_to_use to 0 */
+}
+
+GLOBAL(void) jpeg_mem_term(j_common_ptr cinfo) {
+    // copied from jmemnobs.c
+    /* no work */
+}
 
 static void rl2_jpegDummy(j_decompress_ptr const cinfo) {}
 
