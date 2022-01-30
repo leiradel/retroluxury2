@@ -97,7 +97,7 @@ rl2_Filesys rl2_createFilesystem(void const* const buffer, size_t const size) {
             return NULL;
         }
 
-        entry += (entry_size + 511 / 512) + 1;
+        entry += (entry_size + 511) / 512 + 1;
         num_entries++;
     }
 
@@ -145,7 +145,7 @@ rl2_Filesys rl2_createFilesystem(void const* const buffer, size_t const size) {
             num_entries + 1, entry_size, hash, entry->header.name
         );
 
-        entry += (entry_size + 511 / 512) + 1;
+        entry += (entry_size + 511) / 512 + 1;
     }
 
     qsort(filesys->entries, filesys->num_entries, sizeof(filesys->entries[0]), rl2_compareEntries);
@@ -246,8 +246,8 @@ size_t rl2_read(rl2_File const file, void* const buffer, size_t const size) {
     size_t const available = entry->size - file->pos;
     size_t const to_read = size < available ? size : available;
 
-    uint8_t const* const data = (uint8_t const*)entry->tar_entry + 1;
-    memcpy(buffer, data + file->pos, to_read);
+    uint8_t const* const data = (uint8_t const*)entry->tar_entry;
+    memcpy(buffer, data + 512 + file->pos, to_read);
     file->pos += to_read;
 
     return to_read;
