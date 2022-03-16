@@ -9,8 +9,15 @@ static void* rl2_libcAlloc(void* userdata, void* pointer, size_t size) {
     (void)userdata;
 
     if (pointer == NULL) {
-        pointer = malloc(size);
-        RL2_DEBUG(TAG "allocated %zu bytes at %p", size, pointer);
+        if (size != 0) {
+            pointer = malloc(size);
+            RL2_DEBUG(TAG "allocated %zu bytes at %p", size, pointer);
+        }
+        else
+        {
+            RL2_DEBUG(TAG "freed a NULL pointer");
+        }
+
         return pointer;
     }
     else if (size == 0) {
