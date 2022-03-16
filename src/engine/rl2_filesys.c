@@ -123,8 +123,8 @@ rl2_Filesys rl2_createFilesystem(void const* const buffer, size_t const size) {
         RL2_WARN(TAG "empty file system");
     }
 
-    size_t const entries_size = (num_entries == 0 ? 0 : num_entries - 1) * sizeof(rl2_Entry);
-    rl2_Filesys filesys = (rl2_Filesys)rl2_alloc(sizeof(rl2_Filesys) + entries_size);
+    size_t const entries_size = num_entries * sizeof(rl2_Entry);
+    rl2_Filesys filesys = (rl2_Filesys)rl2_alloc(sizeof(*filesys) + entries_size - sizeof(filesys->entries[0]));
 
     if (filesys == NULL) {
         RL2_ERROR(TAG "out of memory creating file system");
