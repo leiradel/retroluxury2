@@ -21,7 +21,9 @@ INCLUDES += -Isrc/3rdparty/al_bdf
 INCLUDES += -Isrc/3rdparty/dr_libs
 INCLUDES += -Isrc/3rdparty/libjpeg-turbo
 INCLUDES += -Isrc/3rdparty/libpng
+INCLUDES += -Isrc/3rdparty/ogg/include
 INCLUDES += -Isrc/3rdparty/speex
+INCLUDES += -Isrc/3rdparty/vorbis/include
 INCLUDES += -Isrc/3rdparty/zlib
 
 LIBS = -lm
