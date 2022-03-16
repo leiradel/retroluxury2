@@ -423,6 +423,7 @@ rl2_PixelSource rl2_initPixelSource(void const* const data, size_t const size) {
 }
 
 rl2_PixelSource rl2_readPixelSource(rl2_Filesys const filesys, char const* const path) {
+    RL2_DEBUG(TAG "reading pixel source from %p \"%s\"", filesys, path);
     rl2_File const file = rl2_openFile(filesys, path);
 
     if (file == NULL) {
