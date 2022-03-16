@@ -47,23 +47,24 @@ static void rl2_bdfError(al_bdf_Result const res) {
     RL2_ERROR(TAG "unknown error");
 }
 
-rl2_Font rl2_readFont(rl2_Filesys const filesys, char const* const path) {
-    rl2_Font font = (rl2_Font)rl2_alloc(sizeof(*font));
-
-    if (font == NULL) {
-        RL2_ERROR(TAG "out of memory");
-        return NULL;
-    }
-
+rl2_Font rl2_readFontWithFilter(rl2_Filesys const filesys, char const* const path, rl2_GlyphFilter const filter) {
+    RL2_DEBUG(TAG "reading font from %p \"%s\"", filesys, path);
     rl2_File const file = rl2_openFile(filesys, path);
 
     if (file == NULL) {
         // Error already logged
-        rl2_free(font);
         return NULL;
     }
 
-    al_bdf_Result const res = al_bdf_load(font->bdf, rl2_bdfReader, file);
+    rl2_Font font = (rl2_Font)rl2_alloc(sizeof(*font));
+
+    if (font == NULL) {
+        RL2_ERROR(TAG "out of memory");
+        rl2_close(file);
+        return NULL;
+    }
+
+    al_bdf_Result const res = al_bdf_load_filter(font->bdf, rl2_bdfReader, filter, file);
 
     if (res != AL_BDF_OK) {
         rl2_bdfError(res);
@@ -73,6 +74,19 @@ rl2_Font rl2_readFont(rl2_Filesys const filesys, char const* const path) {
     }
 
     return font;
+}
+
+static int rl2_passAll(void* const userdata, int const encoding, int const non_standard) {
+    (void)userdata;
+    (void)encoding;
+    (void)non_standard;
+
+    /* TODO: validate this assumption. */
+    return encoding != -1 ? encoding : non_standard;
+}
+
+rl2_Font rl2_readFont(rl2_Filesys const filesys, char const* const path) {
+    return rl2_readFontWithFilter(filesys, path, rl2_passAll);
 }
 
 void rl2_destroyFont(rl2_Font const font) {

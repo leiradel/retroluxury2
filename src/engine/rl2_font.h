@@ -9,6 +9,9 @@
 
 typedef struct rl2_Font* rl2_Font;
 
+typedef int (*rl2_GlyphFilter)(void* const userdata, int const encoding, int const non_standard);
+
+rl2_Font rl2_readFontWithFilter(rl2_Filesys const filesys, char const* const path, rl2_GlyphFilter const filter);
 rl2_Font rl2_readFont(rl2_Filesys const filesys, char const* const path);
 void rl2_destroyFont(rl2_Font const font);
 
