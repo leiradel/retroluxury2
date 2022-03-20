@@ -402,6 +402,16 @@ rl2_PixelSource rl2_newPixelSource(unsigned const width, unsigned const height) 
         return NULL;
     }
 
+    source->width = width;
+    source->height = height;
+    source->pitch = width;
+    source->parent = NULL;
+    source->abgr = source->data;
+
+#ifdef RL2_BUILD_DEBUG
+    source->path = NULL;
+#endif
+
     return source;
 }
 
