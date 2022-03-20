@@ -14,17 +14,12 @@
 #define TAG "FNT "
 
 struct rl2_Font {
-    al_bdf_Font* bdf;
+    al_bdf_Font bdf;
 };
 
 static int rl2_bdfReader(void* const userdata, void* const buffer, size_t const count) {
     rl2_File const file = (rl2_File)userdata;
     size_t const num_read = rl2_read(file, buffer, count);
-
-    if (num_read == 0) {
-        return -1;
-    }
-
     return (int)num_read;
 }
 
@@ -64,7 +59,7 @@ rl2_Font rl2_readFontWithFilter(rl2_Filesys const filesys, char const* const pat
         return NULL;
     }
 
-    al_bdf_Result const res = al_bdf_load_filter(font->bdf, rl2_bdfReader, filter, file);
+    al_bdf_Result const res = al_bdf_load_filter(&font->bdf, rl2_bdfReader, filter, file);
 
     if (res != AL_BDF_OK) {
         rl2_bdfError(res);
@@ -90,12 +85,12 @@ rl2_Font rl2_readFont(rl2_Filesys const filesys, char const* const path) {
 }
 
 void rl2_destroyFont(rl2_Font const font) {
-    al_bdf_unload(font->bdf);
+    al_bdf_unload(&font->bdf);
     rl2_free(font);
 }
 
 void rl2_textSize(rl2_Font const font, int* const x0, int* const y0, int* const width, int* const height, char const* const text) {
-    al_bdf_size(font->bdf, x0, y0, width, height, text);
+    al_bdf_size(&font->bdf, x0, y0, width, height, text);
 }
 
 rl2_PixelSource rl2_renderText(
@@ -103,7 +98,7 @@ rl2_PixelSource rl2_renderText(
     rl2_ARGB8888 const bg_color, rl2_ARGB8888 const fg_color) {
 
     int width = 0, height = 0;
-    al_bdf_size(font->bdf, x0, y0, &width, &height, text);
+    al_bdf_size(&font->bdf, x0, y0, &width, &height, text);
 
     if (width == 0 || height == 0) {
         RL2_WARN(TAG "nothing to render");
@@ -118,6 +113,6 @@ rl2_PixelSource rl2_renderText(
     }
 
     rl2_fillPixelSource(source, bg_color);
-    al_bdf_render(font->bdf, text, source, fg_color);
+    al_bdf_render(&font->bdf, text, source, fg_color);
     return source;
 }
