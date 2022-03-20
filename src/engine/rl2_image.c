@@ -199,7 +199,7 @@ rl2_Image rl2_createImage(rl2_PixelSource const source) {
         total_pixels_used += pixels_used;
     }
 
-    rl2_Image const image = (rl2_Image)malloc(sizeof(*image) + sizeof(image->rows[0]) * (height - 1) + total_words_used * 2);
+    rl2_Image const image = (rl2_Image)rl2_alloc(sizeof(*image) + sizeof(image->rows[0]) * (height - 1) + total_words_used * 2);
 
     if (image == NULL) {
         RL2_ERROR(TAG "out of memory");
