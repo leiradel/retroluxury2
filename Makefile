@@ -22,7 +22,7 @@ INCLUDES += -Isrc/3rdparty/dr_libs
 INCLUDES += -Isrc/3rdparty/libjpeg-turbo
 INCLUDES += -Isrc/3rdparty/libpng
 INCLUDES += -Isrc/3rdparty/ogg/include
-INCLUDES += -Isrc/3rdparty/speex
+INCLUDES += -Isrc/3rdparty/speexdsp/include/speex
 INCLUDES += -Isrc/3rdparty/vorbis/include
 INCLUDES += -Isrc/3rdparty/zlib
 
@@ -93,8 +93,8 @@ LIBPNG_OBJS = \
 	src/3rdparty/libpng/pngwtran.o \
 	src/3rdparty/libpng/pngwutil.o
 
-SPEEX_OBJS = \
-	src/3rdparty/speex/resample.o
+LIBSPEEXDSP_OBJS = \
+	src/3rdparty/speexdsp/libspeexdsp/resample.o
 
 ZLIB_OBJS = \
 	src/3rdparty/zlib/adler32.o \
@@ -107,7 +107,7 @@ ZLIB_OBJS = \
 	src/3rdparty/zlib/zutil.o
 
 RETROLUXURY2_OBJS = $(ENGINE_OBJS)
-3RDPARTY_OBJS = $(LIBJPEG_TURBO_OBJS) $(LIBPNG_OBJS) $(SPEEX_OBJS) $(ZLIB_OBJS)
+3RDPARTY_OBJS = $(LIBJPEG_TURBO_OBJS) $(LIBPNG_OBJS) $(LIBSPEEXDSP_OBJS) $(ZLIB_OBJS)
 
 all: libretroluxury2.a
 
