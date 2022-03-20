@@ -557,13 +557,13 @@ void rl2_fillPixelSource(rl2_PixelSource const source, rl2_ARGB8888 const color)
     rl2_ARGB8888* pixel = source->abgr;
 
     for (unsigned y = 0; y < height; y++) {
-        rl2_ARGB8888 const* const saved_pixel = pixel;
+        rl2_ARGB8888* const saved_pixel = pixel;
 
         for (unsigned x = 0; x < width; x++) {
             *pixel++ = color;
         }
 
-        pixel = (rl2_ARGB8888*)((uint8_t*)saved_pixel + pitch);
+        pixel = saved_pixel + pitch;
     }
 }
 
