@@ -5,6 +5,7 @@
 #include <speex_resampler.h>
 
 #define DR_WAV_IMPLEMENTATION
+#define DR_WAV_NO_STDIO
 #include <dr_wav.h>
 
 #define OV_EXCLUDE_STATIC_CALLBACKS
