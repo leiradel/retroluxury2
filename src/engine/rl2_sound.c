@@ -76,37 +76,6 @@ struct rl2_Voice {
 static int16_t rl2_audioFrames[RL2_SAMPLES_PER_VIDEO_FRAME * 2];
 static rl2_Voice rl2_voiceList = NULL;
 
-static bool rl2_resample(
-    spx_uint32_t const in_rate,
-    spx_int16_t const* const in_data, spx_uint32_t in_samples,
-    spx_int16_t* const out_data, spx_uint32_t out_samples) {
-
-    RL2_INFO(
-        TAG "resampling from %u Hz to %d (%" PRIu32 " samples in, %" PRIu32 " samples out",
-        in_rate, RL2_SAMPLE_RATE, in_samples, out_samples
-    );
-
-    int error;
-    SpeexResamplerState* const resampler = speex_resampler_init(
-        1, in_rate, RL2_SAMPLE_RATE, SPEEX_RESAMPLER_QUALITY_DEFAULT, &error);
-
-    if (resampler == NULL) {
-        RL2_ERROR(TAG "error initializing resampler: %s", speex_resampler_strerror(error));
-        return false;
-    }
-
-    error = speex_resampler_process_interleaved_int(resampler, in_data, &in_samples, out_data, &out_samples);
-
-    if (error != RESAMPLER_ERR_SUCCESS) {
-        RL2_ERROR(TAG "error resampling: %s", speex_resampler_strerror(error));
-        speex_resampler_destroy(resampler);
-        return false;
-    }
-
-    speex_resampler_destroy(resampler);
-    return true;
-}
-
 static void rl2_addVoice(rl2_Voice const voice) {
     if (rl2_voiceList != NULL) {
         rl2_voiceList->previous = voice;
@@ -140,6 +109,37 @@ static void rl2_removeVoice(rl2_Voice const voice) {
 // ##  ##  ## #########  ##   ##  
 // ##  ##  ## ##     ##   ## ##   
 //  ###  ###  ##     ##    ###    
+
+static bool rl2_resample(
+    spx_uint32_t const in_rate,
+    spx_int16_t const* const in_data, spx_uint32_t in_samples,
+    spx_int16_t* const out_data, spx_uint32_t out_samples) {
+
+    RL2_INFO(
+        TAG "resampling from %u Hz to %d (%" PRIu32 " samples in, %" PRIu32 " samples out",
+        in_rate, RL2_SAMPLE_RATE, in_samples, out_samples
+    );
+
+    int error;
+    SpeexResamplerState* const resampler = speex_resampler_init(
+        1, in_rate, RL2_SAMPLE_RATE, SPEEX_RESAMPLER_QUALITY_DEFAULT, &error);
+
+    if (resampler == NULL) {
+        RL2_ERROR(TAG "error initializing resampler: %s", speex_resampler_strerror(error));
+        return false;
+    }
+
+    error = speex_resampler_process_interleaved_int(resampler, in_data, &in_samples, out_data, &out_samples);
+
+    if (error != RESAMPLER_ERR_SUCCESS) {
+        RL2_ERROR(TAG "error resampling: %s", speex_resampler_strerror(error));
+        speex_resampler_destroy(resampler);
+        return false;
+    }
+
+    speex_resampler_destroy(resampler);
+    return true;
+}
 
 static size_t rl2_drwavRead(void* const userdata, void* const buffer, size_t const count) {
     rl2_File const file = (rl2_File)userdata;
