@@ -38,8 +38,12 @@ typedef struct {
 }
 rl2_Entry;
 
+typedef struct rl2_Filesys rl2_Filesys;
+
 struct rl2_Filesys {
     unsigned num_entries;
+    unsigned height;
+    rl2_Filesys* previous;
     rl2_Entry entries[1];
 };
 
@@ -47,6 +51,8 @@ struct rl2_File {
     rl2_Entry const* entry;
     long pos;
 };
+
+static rl2_Filesys* rl2_topFilesys = NULL;
 
 static int rl2_compareEntries(void const* const ptr1, void const* const ptr2) {
     rl2_Entry const* const entry1 = ptr1;
@@ -68,12 +74,12 @@ static int rl2_compareEntries(void const* const ptr1, void const* const ptr2) {
     return strcmp(path1, path2);
 }
 
-rl2_Filesys rl2_createFilesystem(void const* const buffer, size_t const size) {
+bool rl2_addFilesystem(void const* const buffer, size_t const size) {
     RL2_INFO(TAG "creating filesystem from buffer %p with size %zu", buffer, size);
 
     if ((size % 512) != 0) {
         RL2_ERROR("file system data must have a size multiple of 512 (%zu)", size);
-        return NULL;
+        return false;
     }
 
     rl2_TarEntryV7 const* entry = buffer;
@@ -88,7 +94,7 @@ rl2_Filesys rl2_createFilesystem(void const* const buffer, size_t const size) {
         if (name[sizeof(entry->header.name) - 1] != 0) {
             int const length = (int)sizeof(entry->header.name);
             RL2_ERROR(TAG "entry name doesn't end with a nul character: \"%.*s\"", entry->header.name, length);
-            return NULL;
+            return false;
         }
 
         char* endptr = NULL;
@@ -96,7 +102,7 @@ rl2_Filesys rl2_createFilesystem(void const* const buffer, size_t const size) {
 
         if (entry->header.size[0] == 0 || *endptr != 0 || entry_size < 0 || errno == ERANGE) {
             RL2_ERROR(TAG "invalid size in file system entry \"%s\"", entry->header.name);
-            return NULL;
+            return false;
         }
 
         entry += (entry_size + 511) / 512 + 1;
@@ -105,14 +111,14 @@ rl2_Filesys rl2_createFilesystem(void const* const buffer, size_t const size) {
 
     if (entry >= end) {
         RL2_ERROR(TAG "file system does not end with an empty entry");
-        return NULL;
+        return false;
     }
 
     for (; entry < end; entry++) {
         for (size_t i = 0; i < sizeof(entry->fill); i++) {
             if (entry->fill[i] != 0) {
                 RL2_ERROR(TAG "non-empty entry found at end of file system");
-                return NULL;
+                return false;
             }
         }
     }
@@ -124,14 +130,18 @@ rl2_Filesys rl2_createFilesystem(void const* const buffer, size_t const size) {
     }
 
     size_t const entries_size = num_entries * sizeof(rl2_Entry);
-    rl2_Filesys filesys = (rl2_Filesys)rl2_alloc(sizeof(*filesys) + entries_size - sizeof(filesys->entries[0]));
+    rl2_Filesys* filesys = (rl2_Filesys*)rl2_alloc(sizeof(*filesys) + entries_size - sizeof(filesys->entries[0]));
 
     if (filesys == NULL) {
         RL2_ERROR(TAG "out of memory creating file system");
-        return NULL;
+        return false;
     }
 
     filesys->num_entries = num_entries;
+    filesys->height = rl2_topFilesys == NULL ? 0 : rl2_topFilesys->height + 1;
+    filesys->previous = rl2_topFilesys;
+    rl2_topFilesys = filesys;
+
     num_entries = 0;
 
     for (rl2_TarEntryV7 const* entry = buffer; num_entries < filesys->num_entries; num_entries++) {
@@ -151,42 +161,54 @@ rl2_Filesys rl2_createFilesystem(void const* const buffer, size_t const size) {
     }
 
     qsort(filesys->entries, filesys->num_entries, sizeof(filesys->entries[0]), rl2_compareEntries);
-    RL2_DEBUG(TAG "created file system from %p", buffer);
-    return filesys;
+    RL2_DEBUG(TAG "created file system %p", filesys);
+    return true;
 }
 
-void rl22_destroyFilesystem(rl2_Filesys const filesys) {
-    RL2_INFO(TAG "destroying file system %p", filesys);
-    rl2_free(filesys);
-}
+void rl22_destroyFilesystem(void) {
+    rl2_Filesys* filesys = rl2_topFilesys;
 
-static rl2_Entry* rl2_fileFind(rl2_Filesys const filesys, char const* const path) {
-    rl2_Entry key;
-    key.tar_entry = (rl2_TarEntryV7*)path;
-    key.hash = rl2_djb2(path);
-
-    rl2_Entry* const found = bsearch(&key, filesys->entries, filesys->num_entries, sizeof(filesys->entries[0]), rl2_compareEntries);
-
-    if (found == NULL) {
-        RL2_WARN(TAG "could not find \"%s\" in file system %p", path, filesys);
+    while (filesys != NULL) {
+        RL2_INFO(TAG "destroying file system %p", filesys);
+        rl2_Filesys* previous = filesys->previous;
+        rl2_free(filesys);
+        filesys = previous;
     }
-    else {
-        RL2_DEBUG(
-            TAG "found \"%s\" in file system %p, size %ld, hash " RL2_PRI_DJB2HASH,
-            path, filesys, found->size, found->hash
-        );
-    }
-
-    return found;
 }
 
-bool rl2_fileExists(rl2_Filesys const filesys, char const* const path) {
-    rl2_Entry const* const found = rl2_fileFind(filesys, path);
+static rl2_Entry* rl2_fileFind(char const* const path, unsigned const max_height) {
+    rl2_Filesys* filesys = rl2_topFilesys;
+
+    while (filesys != NULL && filesys->height <= max_height) {
+        rl2_Entry key;
+        key.tar_entry = (rl2_TarEntryV7*)path;
+        key.hash = rl2_djb2(path);
+
+        rl2_Entry* const found = bsearch(&key, filesys->entries, filesys->num_entries, sizeof(filesys->entries[0]), rl2_compareEntries);
+
+        if (found != NULL) {
+            RL2_DEBUG(
+                TAG "found \"%s\" in file system %p, size %ld, hash " RL2_PRI_DJB2HASH,
+                path, filesys, found->size, found->hash
+            );
+
+            return found;
+        }
+
+        filesys = filesys->previous;
+    }
+
+    RL2_WARN(TAG "could not find path \"%s\" in the file system", path);
+    return NULL;
+}
+
+bool rl2_fileExists(char const* const path, unsigned const max_height) {
+    rl2_Entry const* const found = rl2_fileFind(path, max_height);
     return found != NULL;
 }
 
-long rl2_fileSize(rl2_Filesys const filesys, char const* const path) {
-    rl2_Entry const* const found = rl2_fileFind(filesys, path);
+long rl2_fileSize(char const* const path, unsigned const max_height) {
+    rl2_Entry const* const found = rl2_fileFind(path, max_height);
 
     if (found == NULL) {
         return -1;
@@ -195,8 +217,8 @@ long rl2_fileSize(rl2_Filesys const filesys, char const* const path) {
     return found->size;
 }
 
-rl2_File rl2_openFile(rl2_Filesys const filesys, char const* const path) {
-    rl2_Entry const* const found = rl2_fileFind(filesys, path);
+rl2_File rl2_openFile(char const* const path, unsigned const max_height) {
+    rl2_Entry const* const found = rl2_fileFind(path, max_height);
 
     if (found == NULL) {
         return NULL;
