@@ -10,9 +10,6 @@
 [submodule "src/3rdparty/al_bdf"]
 	path = src/3rdparty/al_bdf
 	url = https://github.com/leiradel/al_bdf.git
-[submodule "src/3rdparty/speexdsp"]
-	path = src/3rdparty/speexdsp
-	url = https://gitlab.xiph.org/xiph/speexdsp.git
 [submodule "src/3rdparty/miniaudio"]
 	path = src/3rdparty/miniaudio
 	url = https://github.com/mackron/miniaudio.git
