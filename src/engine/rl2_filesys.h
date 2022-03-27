@@ -3,6 +3,9 @@
 
 #include <stddef.h>
 #include <stdbool.h>
+#include <limits.h>
+
+#define RL2_MAX_FSYS_HEIGHT UINT_MAX
 
 typedef struct rl2_File* rl2_File;
 
