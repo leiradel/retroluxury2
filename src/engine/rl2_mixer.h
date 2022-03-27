@@ -1,5 +1,5 @@
-#ifndef RL2_SOUND_H__
-#define RL2_SOUND_H__
+#ifndef RL2_MIXER_H__
+#define RL2_MIXER_H__
 
 #include "rl2_filesys.h"
 
@@ -15,4 +15,4 @@ bool rl2_playSound(char const* const path, unsigned const max_height);
 
 void rl2_stopAll(void);
 
-#endif // RL2_SOUND_H__
+#endif // RL2_MIXER_H__
