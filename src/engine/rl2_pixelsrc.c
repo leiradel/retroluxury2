@@ -432,19 +432,10 @@ rl2_PixelSource rl2_initPixelSource(void const* const data, size_t const size) {
     return source;
 }
 
-rl2_PixelSource rl2_readPixelSource(rl2_Filesys const filesys, char const* const path) {
-    RL2_DEBUG(TAG "reading pixel source from %p \"%s\"", filesys, path);
-    rl2_File const file = rl2_openFile(filesys, path);
-
-    if (file == NULL) {
-        // Error already logged
-        return NULL;
-    }
-
+rl2_PixelSource rl2_readPixelSource(rl2_File const file) {
     uint8_t header[8];
 
     if (rl2_read(file, header, 8) != 8) {
-        RL2_ERROR(TAG "error reading from image \"%s\"", path);
         rl2_close(file);
         return NULL;
     }
@@ -457,22 +448,7 @@ rl2_PixelSource rl2_readPixelSource(rl2_Filesys const filesys, char const* const
     reader.size = 0;
     reader.pos = 0;
 
-    rl2_PixelSource const source = rl2_isPng(header) ? rl2_readPng(&reader) : rl2_readJpeg(&reader);
-    rl2_close(file);
-
-#ifdef RL2_BUILD_DEBUG
-    if (source != NULL) {
-        size_t const path_len = strlen(path);
-        char* const path_dup = (char*)rl2_alloc(path_len + 1);
-        source->path = path_dup;
-
-        if (path_dup != NULL) {
-            memcpy(path_dup, path, path_len + 1);
-        }
-    }
-#endif
-
-    return source;
+    return rl2_isPng(header) ? rl2_readPng(&reader) : rl2_readJpeg(&reader);
 }
 
 rl2_PixelSource rl2_subPixelSource(
@@ -506,27 +482,10 @@ rl2_PixelSource rl2_subPixelSource(
     source->abgr = parent->abgr + y0 * parent->pitch + x0;
     source->parent = parent;
 
-#ifdef RL2_BUILD_DEBUG
-    char path[64];
-    snprintf(path, sizeof(path), "Child of %p", (void*)parent);
-
-    size_t const path_len = strlen(path);
-    char* const path_dup = (char*)rl2_alloc(path_len + 1);
-    source->path = path_dup;
-
-    if (path_dup != NULL) {
-        memcpy(path_dup, path, path_len + 1);
-    }
-#endif
-
     return source;
 }
 
 void rl2_destroyPixelSource(rl2_PixelSource const source) {
-#ifdef RL2_BUILD_DEBUG
-    rl2_free((void*)source->path);
-#endif
-
     rl2_free(source);
 }
 
@@ -578,9 +537,3 @@ void rl2_putPixel(rl2_PixelSource const source, unsigned const x, unsigned const
 
     RL2_WARN(TAG "pixel coordinates outside bounds: %u, %u", x, y);
 }
-
-#ifdef RL2_BUILD_DEBUG
-char const* rl2_getPixelSourcePath(rl2_PixelSource const source) {
-    return source->path;
-}
-#endif
