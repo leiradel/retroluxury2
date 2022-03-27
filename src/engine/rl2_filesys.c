@@ -174,6 +174,8 @@ void rl22_destroyFilesystem(void) {
         rl2_free(filesys);
         filesys = previous;
     }
+
+    rl2_topFilesys = NULL;
 }
 
 static rl2_Entry* rl2_fileFind(char const* const path, unsigned const max_height) {
