@@ -42,9 +42,9 @@ static void rl2_bdfError(al_bdf_Result const res) {
     RL2_ERROR(TAG "unknown error");
 }
 
-rl2_Font rl2_readFontWithFilter(rl2_Filesys const filesys, char const* const path, rl2_GlyphFilter const filter) {
-    RL2_DEBUG(TAG "reading font from %p \"%s\"", filesys, path);
-    rl2_File const file = rl2_openFile(filesys, path);
+rl2_Font rl2_readFontWithFilter(char const* const path, unsigned const max_height, rl2_GlyphFilter const filter) {
+    RL2_DEBUG(TAG "reading font from \"%s\" with maximum height %u", path, max_height);
+    rl2_File const file = rl2_openFile(path, max_height);
 
     if (file == NULL) {
         // Error already logged
@@ -80,8 +80,8 @@ static int rl2_passAll(void* const userdata, int const encoding, int const non_s
     return encoding != -1 ? encoding : non_standard;
 }
 
-rl2_Font rl2_readFont(rl2_Filesys const filesys, char const* const path) {
-    return rl2_readFontWithFilter(filesys, path, rl2_passAll);
+rl2_Font rl2_readFont(char const* const path, unsigned const max_height) {
+    return rl2_readFontWithFilter(path, max_height, rl2_passAll);
 }
 
 void rl2_destroyFont(rl2_Font const font) {

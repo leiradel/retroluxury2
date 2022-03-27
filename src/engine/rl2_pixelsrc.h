@@ -26,7 +26,7 @@ typedef struct rl2_PixelSource* rl2_PixelSource;
 
 rl2_PixelSource rl2_newPixelSource(unsigned const width, unsigned const height);
 rl2_PixelSource rl2_initPixelSource(void const* const data, size_t const size);
-rl2_PixelSource rl2_readPixelSource(rl2_Filesys const filesys, char const* const path);
+rl2_PixelSource rl2_readPixelSource(char const* const path, unsigned const max_height);
 
 rl2_PixelSource rl2_subPixelSource(
     rl2_PixelSource const parent, unsigned const x0, unsigned const y0, unsigned const width, unsigned const height);

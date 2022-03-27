@@ -432,9 +432,9 @@ rl2_PixelSource rl2_initPixelSource(void const* const data, size_t const size) {
     return source;
 }
 
-rl2_PixelSource rl2_readPixelSource(rl2_Filesys const filesys, char const* const path) {
-    RL2_DEBUG(TAG "reading pixel source from %p \"%s\"", filesys, path);
-    rl2_File const file = rl2_openFile(filesys, path);
+rl2_PixelSource rl2_readPixelSource(char const* const path, unsigned const max_height) {
+    RL2_DEBUG(TAG "reading pixel source from \"%s\"", path, max_height);
+    rl2_File const file = rl2_openFile(path, max_height);
 
     if (file == NULL) {
         // Error already logged
