@@ -13,9 +13,6 @@
 [submodule "src/3rdparty/vorbis"]
 	path = src/3rdparty/vorbis
 	url = https://gitlab.xiph.org/xiph/vorbis.git
-[submodule "src/3rdparty/ogg"]
-	path = src/3rdparty/ogg
-	url = https://gitlab.xiph.org/xiph/ogg.git
 [submodule "src/3rdparty/speexdsp"]
 	path = src/3rdparty/speexdsp
 	url = https://gitlab.xiph.org/xiph/speexdsp.git
